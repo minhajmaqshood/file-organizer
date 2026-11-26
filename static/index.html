@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Organise files in a folder you choose. Local Python backend, preview before moving, one-click undo.">
+    <meta name="theme-color" content="#0b1120">
+    <title>File Organizer — pick a folder, sort everything</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script src="static/app.js" defer></script>
+</head>
+<body>
+    <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="File Organizer home">
+            <span class="brand__mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h4l2 2.5h7A2.5 2.5 0 0 1 21 10v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17V7.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="brand__text">File<b>Organizer</b></span>
+        </a>
+        <span class="header-note"><i class="dot" aria-hidden="true"></i> Local only · Python backend</span>
+    </header>
+
+    <main class="shell">
+        <section class="hero" aria-labelledby="heroTitle">
+            <p class="eyebrow">Pick a folder → preview → organise</p>
+            <h1 id="heroTitle">Tidy any folder, <span>your way.</span></h1>
+            <p class="lede">Choose the folder you want to reorganise, decide how files should be grouped, and preview every move before anything changes. One click undoes the whole run.</p>
+        </section>
+
+        <section class="card" aria-labelledby="folderTitle">
+            <div class="card__head">
+                <span class="step">1</span>
+                <div>
+                    <h2 id="folderTitle">Choose the folder to reorganise</h2>
+                    <p>Browse the folders on this computer, or paste a path directly.</p>
+                </div>
+            </div>
+
+            <div class="path-row">
+                <div class="input-wrap">
+                    <svg class="input-wrap__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h4l2 2.5h7A2.5 2.5 0 0 1 21 10v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17V7.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                    <input id="folderPath" type="text" spellcheck="false" autocomplete="off" placeholder="D:\Downloads">
+                </div>
+                <button type="button" class="secondary-btn" id="browseBtn">Browse folders…</button>
+            </div>
+
+            <div class="quick" id="quickRoots" hidden>
+                <span class="quick__label">Common folders:</span>
+                <div class="quick__list" id="quickList"></div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="optionsTitle">
+            <div class="card__head">
+                <span class="step">2</span>
+                <div>
+                    <h2 id="optionsTitle">Choose how to organise</h2>
+                    <p>Group by file type, by the month the file was changed, or both.</p>
+                </div>
+            </div>
+
+            <div class="modes" role="radiogroup" aria-label="Organisation mode">
+                <label class="mode"><input type="radio" name="mode" value="type" checked><span class="mode__body"><strong>By type</strong><small>PDF, Images, Video, Audio…</small></span></label>
+                <label class="mode"><input type="radio" name="mode" value="date"><span class="mode__body"><strong>By date</strong><small>One folder per month, e.g. 2026-11</small></span></label>
+                <label class="mode"><input type="radio" name="mode" value="type_date"><span class="mode__body"><strong>Type + date</strong><small>Images/2026-11, Documents/2026-11…</small></span></label>
+            </div>
+
+            <div class="option-grid">
+                <label class="switch-row" for="recursiveInput">
+                    <span><strong>Include subfolders</strong><small>Walk inside nested folders too.</small></span>
+                    <span class="switch-wrap"><input id="recursiveInput" type="checkbox" checked><span class="switch" aria-hidden="true"></span></span>
+                </label>
+                <label class="switch-row" for="hiddenInput">
+                    <span><strong>Include hidden files</strong><small>Dotfiles and Windows-hidden files.</small></span>
+                    <span class="switch-wrap"><input id="hiddenInput" type="checkbox"><span class="switch" aria-hidden="true"></span></span>
+                </label>
+                <label class="exclude-row" for="excludeInput">
+                    <span><strong>Exclude folder names</strong><small>Comma separated, e.g. temp, backups</small></span>
+                    <input id="excludeInput" type="text" placeholder="temp, backups" autocomplete="off">
+                </label>
+            </div>
+
+            <div class="actions">
+                <button type="button" class="primary-btn" id="previewBtn">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.7"/></svg>
+                    Preview changes
+                </button>
+                <button type="button" class="danger-btn" id="organizeBtn" disabled>Organise files</button>
+            </div>
+        </section>
+
+        <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+
+        <section class="card results" id="previewBox" hidden aria-labelledby="previewTitle">
+            <div class="card__head">
+                <span class="step">3</span>
+                <div>
+                    <h2 id="previewTitle">Preview — nothing has moved yet</h2>
+                    <p id="previewSource"></p>
+                </div>
+            </div>
+            <div class="summary" id="summary"></div>
+            <div class="warnings" id="previewWarnings" hidden></div>
+            <div class="toolbar">
+                <div class="chips" id="categoryChips" role="group" aria-label="Filter planned moves by category"></div>
+            </div>
+            <div class="table-wrap">
+                <table class="plan-table">
+                    <thead><tr><th>File</th><th>Category</th><th>From</th><th>To</th><th class="num">Size</th></tr></thead>
+                    <tbody id="planRows"></tbody>
+                </table>
+            </div>
+            <p class="empty" id="planEmpty" hidden>No files matched these options.</p>
+        </section>
+
+        <section class="card" id="resultBox" hidden aria-labelledby="resultTitle">
+            <div class="card__head">
+                <span class="step">4</span>
+                <div><h2 id="resultTitle">Done</h2><p id="resultText"></p></div>
+            </div>
+            <div class="warnings" id="resultErrors" hidden></div>
+        </section>
+
+        <section class="card" id="historyBox" hidden aria-labelledby="historyTitle">
+            <div class="card__head">
+                <div><h2 id="historyTitle">Recent runs</h2><p>Every run can be undone from here.</p></div>
+            </div>
+            <div id="historyList" class="history-list"></div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <span>Files stay on this computer. The browser only talks to the local Python service on 127.0.0.1:8767.</span>
+    </footer>
+
+    <div class="modal" id="browserModal" hidden>
+        <div class="modal__backdrop" data-close="1"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="browserTitle">
+            <div class="modal__head">
+                <div>
+                    <h3 id="browserTitle">Choose a folder</h3>
+                    <p id="browserPath"></p>
+                </div>
+                <button type="button" class="icon-btn" id="closeBrowser" aria-label="Close folder browser">×</button>
+            </div>
+            <div class="modal__tools">
+                <button type="button" class="small-btn" id="upBtn">↑ Up</button>
+                <input id="modalPath" type="text" spellcheck="false" placeholder="Paste a path and press Go">
+                <button type="button" class="small-btn" id="goBtn">Go</button>
+            </div>
+            <div class="dir-list" id="dirList"></div>
+            <div class="modal__foot">
+                <span id="browserInfo"></span>
+                <button type="button" class="primary-btn" id="selectFolderBtn">Select this folder</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
